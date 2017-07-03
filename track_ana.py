@@ -5,6 +5,8 @@ from bokeh.layouts import row, column, widgetbox
 from bokeh.io import curdoc
 
 from functools import partial, lru_cache
+import glob
+
 from larana.lar_data import LarData
 import numpy as np
 
@@ -137,21 +139,30 @@ def dimension_change(attr, old, new):
         source_static.data.update(hist[plane_static].data)
         source_sel.data.update(hist_selection[plane_sel].data)
 
+def reload_data(basedir, event):
+    subrun = int(event / 50)
+    filename = glob.glob1(basedir, "*{}*".format(subrun))
+
+    if len(filename) > 1:
+        raise ValueError("Found multiple files matching the expected subrun!")
+
+    df = LarData(base_dir + filename[0])
+    df.read_ids()
+    df.read_hits(planes="u")
+
+    return df
 
 # Initilaization
 base_dir = "/home/data/uboone/laser/7267/out/roi/"
-filename = "LaserReco-LaserHit-7267-0789_digitfilter-exp-roi.root"
 
-data = LarData(base_dir + filename)
-data.read_ids()
-data.read_hits(planes="u")
+data = reload_data(base_dir, 39501)
 
 dimensions = {"Amplitude": 'peaks',
               "Width": 'width'}
 
 # plots and controls
 planes = {0: 'u', 1: 'v', 2: 'y'}
-wire_limits = {'u': [0, 2000], "v": [0, 2000], 'y': [0, 3460]}
+wire_limits = {'u': [0, 2500], "v": [0, 2500], 'y': [0, 3460]}
 tick_limits = [3200, 9600]
 
 
