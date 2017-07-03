@@ -4,40 +4,39 @@ from bokeh.models.widgets import TextInput, Button, Select
 from bokeh.layouts import row, column, widgetbox
 from bokeh.io import curdoc
 
-from functools import partial
+from functools import partial, lru_cache
 from larana.lar_data import LarData
 import numpy as np
 
 
-def get_tick(data, eventid, plane):
-    if plane < 0 or plane > 2:
-        raise ValueError("plane must be 0,1 or 2, it was {}".format(plane))
+#@lru_cache(maxsize=100)
+def get_plane_idx(data, plane_id):
+    if plane_id < 0 or plane_id > 2:
+        raise ValueError("plane must be 0,1 or 2, it was {}".format(plane_id))
+    return np.where(data == plane_id)
 
+
+def get_tick(data, eventid, plane):
     hit = data.get_hits(eventid)
-    hit_idx = np.where(hit.plane == plane)
-    return hit.tick[hit_idx]
+    return hit.tick[get_plane_idx(hit.plane, plane)]
 
 
 def get_wire(data, eventid, plane):
-    if plane < 0 or plane > 2:
-        raise ValueError("plane must be 0,1 or 2, it was {}".format(plane))
-
     hit = data.get_hits(eventid)
-    hit_idx = np.where(hit.plane == plane)
-    return hit.wire[hit_idx]
+    return hit.wire[get_plane_idx(hit.plane, plane)]
 
 
 def get_ampl(data, eventid, plane):
-    if plane < 0 or plane > 2:
-        raise ValueError("plane must be 0,1 or 2, it was {}".format(plane))
-
     hit = data.get_hits(eventid)
-    hit_idx = np.where(hit.plane == plane)
-    return hit.peak_amp[hit_idx]
+    return hit.peak_amp[get_plane_idx(hit.plane, plane)]
 
-def get_width(data, event, plane):
-    if plane < 0 or plane > 2:
-        raise ValueError("plane must be 0,1 or 2, it was {}".format(plane))
+
+def get_width(data, eventid, plane):
+    hit = data.get_hits(eventid)
+    start_tick = hit.start_tick[get_plane_idx(hit.plane, plane)]
+    end_tick = hit.end_tick[get_plane_idx(hit.plane, plane)]
+
+    return end_tick - start_tick
 
 
 def get_histo(data, plane, bins=200):
@@ -46,6 +45,43 @@ def get_histo(data, plane, bins=200):
               2: [0, 2000]}
 
     return np.histogram(data, bins=bins, range=ranges[plane])
+
+
+def get_data_hits(data, event):
+    planes = {0: 'u', 1: 'v', 2: 'y'}
+
+    wires = {str_plane: get_wire(data, event, plane) for plane, str_plane in planes.items()}
+    ticks = {str_plane: get_tick(data, event, plane) for plane, str_plane in planes.items()}
+    peaks = {str_plane: get_ampl(data, event, plane) for plane, str_plane in planes.items()}
+    widths = {str_plane: get_width(data, event, plane) for plane, str_plane in planes.items()}
+
+    hit_static = {plane: ColumnDataSource(data=dict(wire=wires[plane],
+                                                    tick=ticks[plane],
+                                                    peaks=peaks[plane],
+                                                    width=widths[plane]
+                                                    )
+                                                 )
+                         for plane in planes.values()}
+
+    hit_selection = {plane: ColumnDataSource(data=dict(wire=[], tick=[])) for plane in planes.values()}
+
+    return hit_static, hit_selection
+
+
+def get_data_histo(selection):
+    planes = {0: 'u', 1: 'v', 2: 'y'}
+
+    dt = {plane: hit_source_static[plane].data[selection] for plane in planes.values()}
+
+    histos = {str_plane: get_histo(dt[str_plane], plane) for plane, str_plane in planes.items()}
+
+    histo_static = {plane: ColumnDataSource(data=dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])) for
+                   plane, [hist, edges] in histos.items()}
+
+    histo_selection = {plane: ColumnDataSource(data=dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:]))
+                             for plane, [hist, edges] in histos.items()}
+
+    return histo_static, histo_selection
 
 
 def update_plots(attr, old, new):
@@ -63,16 +99,15 @@ def update_plots(attr, old, new):
         plane = 2
 
     # hit update
-    wire = get_wire(data, evt, plane)
-    tick = get_tick(data, evt, plane)
-    peak = get_ampl(data, evt, plane)
-    hit_source_static['y'].data = dict(wire=wire, tick=tick, peak=peak)
-    hit_source_selection['y'].data = dict(wire=[], tick=[])
+    hit_static, hit_selection = get_data_hits(data, evt)
+    for plane, source in hit_source_static.items():
+        source.data.update(hit_static[plane].data)
 
-    # hist update
-    hist, edges = get_histo(peak, plane=plane)
-    hist_source['y'].data = dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])
-    hist_source_selection['y'].data = dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])
+    # histo update
+    hist, hist_selection = get_data_histo('peaks')
+    for [plane_static, source_static], [plane_sel, source_sel] in zip(hist_source.items(), hist_source_selection.items()):
+        source_static.data.update(hist[plane_static].data)
+        source_sel.data.update(hist_selection[plane_sel].data)
 
 
 def selection_change(attr, old, new):
@@ -90,6 +125,7 @@ def selection_change(attr, old, new):
     select_hits = dict(wire=hit_source_static['y'].data['wire'][idx], tick=hit_source_static['y'].data['tick'][idx])
     hits_sel.data_source.data = select_hits
 
+
 # Initilaization
 base_dir = "/home/data/uboone/laser/7267/out/roi/"
 filename = "LaserReco-LaserHit-7267-0789_digitfilter-exp-roi.root"
@@ -99,22 +135,20 @@ data.read_ids()
 data.read_hits(planes="u")
 
 # plots and controls
-planes = {0: 'u',
-          1: 'v',
-          2: 'y'
-          }
+planes = {0: 'u', 1: 'v', 2: 'y'}
 
-plot_hits = {}
-plot_hists = {}
+plot_hits = {plane: figure(title='{}-plane hits'.format(plane), plot_width=1200, plot_height=300,
+                           x_range=[0, 3460], y_range=[3200, 7000]
+                           )
+             for plane in planes.values()}
 
-for str_plane in planes.values():
-    plot_hits[str_plane] = figure(title='{}-plane hits'.format(str_plane),
-                       plot_width=1200, plot_height=300,
-                       x_range=[0, 3460], y_range=[3200, 7000])
-    plot_hists[str_plane] = figure(title="{}-plane histo".format(str_plane),
-                        plot_width=300, plot_height=300,
-                        tools='pan,wheel_zoom,xbox_select,reset')
+plot_hists = {plane: figure(title="{}-plane histo".format(plane),
+                            plot_width=300, plot_height=300,
+                            tools='pan,wheel_zoom,xbox_select,reset'
+                            )
+              for plane in planes.values()}
 
+# controls
 event_select = TextInput(value='1')
 back_btn = Button(label='<')
 fwrd_btn = Button(label='>')
@@ -122,20 +156,8 @@ hist_select = Select(value='Amplitude', options=['Amplitude', 'Width', 'Area'])
 
 # definitions / data
 event = 1
-
-wires = {str_plane: get_wire(data, event, plane) for plane, str_plane in planes.items()}
-ticks = {str_plane: get_tick(data, event, plane) for plane, str_plane in planes.items()}
-peaks = {str_plane: get_ampl(data, event, plane) for plane, str_plane in planes.items()}
-hists = {str_plane: get_histo(peaks[str_plane], plane) for plane, str_plane in planes.items()}
-
-# define data sources
-hit_source_static = {plane: ColumnDataSource(data=dict(wire=wires[plane], tick=ticks[plane], histp=peaks[plane]))
-                     for plane in planes.values()}
-hit_source_selection = {plane: ColumnDataSource(data=dict(wire=[], tick=[])) for plane in planes.values()}
-
-hist_source = {plane: ColumnDataSource(data=dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])) for plane, [hist, edges] in hists.items()}
-hist_source_selection = {plane: ColumnDataSource(data=dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])) for plane, [hist, edges] in hists.items()}
-
+hit_source_static, hit_source_selection = get_data_hits(data, event)
+hist_source, hist_source_selection = get_data_histo('peaks')
 
 # histogram plot
 plot_hists['y'].quad(top='hist', source=hist_source['y'], bottom=0,
@@ -146,14 +168,34 @@ hist_bkgnd = plot_hists['y'].circle('edge_left', 'hist',
                               selection_color="orange",
                               source=hist_source_selection['y'],
                               fill_color=None,
-                              line_alpha=1.)
+                              line_alpha=0)
 
-hits = plot_hits['y'].circle('wire', 'tick', source=hit_source_static['y'], fill_alpha=0.2)
-hits_sel = plot_hits['y'].cross('wire', 'tick', source=hit_source_static['y'], color="orange", size=20)
+hits, hits_sel = {}, {}
+histos, histos_sel = {}, {}
+# actual plotting
+for plane in planes.values():
+    # hits
+    hits[plane] = plot_hits[plane].circle('wire', 'tick', source=hit_source_static[plane], fill_alpha=0.2)
+    hits_sel[plane] = plot_hits[plane].cross('wire', 'tick', source=hit_source_selection[plane], color="orange", size=20)
 
+    # histograms
+    histos[plane] = plot_hists[plane].quad(top='hist', source=hist_source[plane], bottom=0,
+                                           left='edge_left', right='edge_right',
+                                           fill_color="#036564", line_color="#033649",
+                                           )
+
+    histos_sel[plane] = plot_hists[plane].circle('edge_left', 'hist',
+                                                 selection_color="orange",
+                                                 source=hist_source_selection[plane],
+                                                 fill_color=None,
+                                                 line_alpha=0)
+
+# structure
+uplots = row(plot_hits['u'], plot_hists['u'])
+vplots = row(plot_hits['v'], plot_hists['v'])
 yplots = row(plot_hits['y'], plot_hists['y'])
 cntrl = widgetbox(back_btn, event_select, fwrd_btn, hist_select)
-main_col = column(row(cntrl), yplots)
+main_col = column(row(cntrl), uplots, vplots, yplots)
 
 # callbacks
 event_select.on_change('value', update_plots)
