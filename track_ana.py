@@ -10,51 +10,51 @@ import numpy as np
 
 
 #@lru_cache(maxsize=100)
-def get_plane_idx(data, plane_id):
+def get_plane_idx(dt, plane_id):
     if plane_id < 0 or plane_id > 2:
         raise ValueError("plane must be 0,1 or 2, it was {}".format(plane_id))
-    return np.where(data == plane_id)
+    return np.where(dt == plane_id)
 
 
-def get_tick(data, eventid, plane):
-    hit = data.get_hits(eventid)
+def get_tick(dt, eventid, plane):
+    hit = dt.get_hits(eventid)
     return hit.tick[get_plane_idx(hit.plane, plane)]
 
 
-def get_wire(data, eventid, plane):
-    hit = data.get_hits(eventid)
+def get_wire(dt, eventid, plane):
+    hit = dt.get_hits(eventid)
     return hit.wire[get_plane_idx(hit.plane, plane)]
 
 
-def get_ampl(data, eventid, plane):
-    hit = data.get_hits(eventid)
+def get_ampl(dt, eventid, plane):
+    hit = dt.get_hits(eventid)
     return hit.peak_amp[get_plane_idx(hit.plane, plane)]
 
 
-def get_width(data, eventid, plane):
-    hit = data.get_hits(eventid)
+def get_width(dt, eventid, plane):
+    hit = dt.get_hits(eventid)
     start_tick = hit.start_tick[get_plane_idx(hit.plane, plane)]
     end_tick = hit.end_tick[get_plane_idx(hit.plane, plane)]
 
     return end_tick - start_tick
 
 
-def get_histo(data, plane, dim, bins=200):
+def get_histo(dt, plane, dim, bins=200):
     print(plane, dim)
     ranges = {'peaks':  {0: [-2000, 0], 1: [0, 2000], 2: [0, 2000]},
               'width': {0: [0, 500], 1: [0, 500], 2: [0, 500]}
               }
 
-    return np.histogram(data, bins=bins, range=ranges[dim][plane])
+    return np.histogram(dt, bins=bins, range=ranges[dim][plane])
 
 
-def get_data_hits(data, event):
+def get_data_hits(dt, event):
     planes = {0: 'u', 1: 'v', 2: 'y'}
 
-    wires = {str_plane: get_wire(data, event, plane) for plane, str_plane in planes.items()}
-    ticks = {str_plane: get_tick(data, event, plane) for plane, str_plane in planes.items()}
-    peaks = {str_plane: get_ampl(data, event, plane) for plane, str_plane in planes.items()}
-    widths = {str_plane: get_width(data, event, plane) for plane, str_plane in planes.items()}
+    wires = {str_plane: get_wire(dt, event, plane) for plane, str_plane in planes.items()}
+    ticks = {str_plane: get_tick(dt, event, plane) for plane, str_plane in planes.items()}
+    peaks = {str_plane: get_ampl(dt, event, plane) for plane, str_plane in planes.items()}
+    widths = {str_plane: get_width(dt, event, plane) for plane, str_plane in planes.items()}
 
     hit_static = {plane: ColumnDataSource(data=dict(wire=wires[plane],
                                                     tick=ticks[plane],
@@ -89,14 +89,11 @@ def update_plots(attr, old, new):
     if attr == '<':
         evt = int(event_select.value) - 1
         event_select.value = str(evt)
-        plane = 2
     if attr == '>':
         evt = int(event_select.value) + 1
         event_select.value = str(evt)
-        plane = 2
     else:
         evt = int(event_select.value)
-        plane = 2
 
     # histo update
     hist, hist_selection = get_data_histo(dimensions[dim_select.value])
@@ -135,7 +132,8 @@ def selection_change(attr, old, new, plane):
 
 def dimension_change(attr, old, new):
     hist, hist_selection = get_data_histo(dimensions[dim_select.value])
-    for [plane_static, source_static], [plane_sel, source_sel] in zip(hist_source.items(), hist_source_selection.items()):
+    for [plane_static, source_static], [plane_sel, source_sel] \
+            in zip(hist_source.items(), hist_source_selection.items()):
         source_static.data.update(hist[plane_static].data)
         source_sel.data.update(hist_selection[plane_sel].data)
 
@@ -153,9 +151,12 @@ dimensions = {"Amplitude": 'peaks',
 
 # plots and controls
 planes = {0: 'u', 1: 'v', 2: 'y'}
+wire_limits = {'u': [0, 2000], "v": [0, 2000], 'y': [0, 3460]}
+tick_limits = [3200, 9600]
+
 
 plot_hits = {plane: figure(title='{}-plane hits'.format(plane), plot_width=1200, plot_height=300,
-                           x_range=[0, 3460], y_range=[3200, 7000]
+                           x_range=wire_limits[plane], y_range=tick_limits
                            )
              for plane in planes.values()}
 
