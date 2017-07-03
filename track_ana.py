@@ -39,12 +39,13 @@ def get_width(data, eventid, plane):
     return end_tick - start_tick
 
 
-def get_histo(data, plane, bins=200):
-    ranges = {0: [-2000,0],
-              1: [0, 2000],
-              2: [0, 2000]}
+def get_histo(data, plane, dim, bins=200):
+    print(plane, dim)
+    ranges = {'peaks':  {0: [-2000, 0], 1: [0, 2000], 2: [0, 2000]},
+              'width': {0: [0, 500], 1: [0, 500], 2: [0, 500]}
+              }
 
-    return np.histogram(data, bins=bins, range=ranges[plane])
+    return np.histogram(data, bins=bins, range=ranges[dim][plane])
 
 
 def get_data_hits(data, event):
@@ -70,11 +71,10 @@ def get_data_hits(data, event):
 
 def get_data_histo(selection):
     planes = {0: 'u', 1: 'v', 2: 'y'}
+    dim = dimensions[dim_select.value]
 
     dt = {plane: hit_source_static[plane].data[selection] for plane in planes.values()}
-
-    histos = {str_plane: get_histo(dt[str_plane], plane) for plane, str_plane in planes.items()}
-
+    histos = {str_plane: get_histo(dt[str_plane], plane, dim) for plane, str_plane in planes.items()}
     histo_static = {plane: ColumnDataSource(data=dict(hist=hist, edge_left=edges[:-1], edge_right=edges[1:])) for
                    plane, [hist, edges] in histos.items()}
 
@@ -98,32 +98,46 @@ def update_plots(attr, old, new):
         evt = int(event_select.value)
         plane = 2
 
-    # hit update
-    hit_static, hit_selection = get_data_hits(data, evt)
-    for plane, source in hit_source_static.items():
-        source.data.update(hit_static[plane].data)
-
     # histo update
-    hist, hist_selection = get_data_histo('peaks')
+    hist, hist_selection = get_data_histo(dimensions[dim_select.value])
     for [plane_static, source_static], [plane_sel, source_sel] in zip(hist_source.items(), hist_source_selection.items()):
         source_static.data.update(hist[plane_static].data)
         source_sel.data.update(hist_selection[plane_sel].data)
 
+    # hit update
+    hit_static, hit_selection = get_data_hits(data, evt)
+    for [plane_static, source_static], [plane_sel, source_sel] in zip(hit_source_static.items(), hit_source_selection.items()):
+        source_static.data.update(hit_static[plane_static].data)
+        source_sel.data.update(hit_selection[plane_sel].data)
 
-def selection_change(attr, old, new):
-    max_idx = np.max(hist_source_selection['y'].selected['1d']['indices'])
-    min_idx = np.min(hist_source_selection['y'].selected['1d']['indices'])
+        selection_change('', '', '', plane_sel)
 
-    bin_max = hist_source_selection['y'].data['edge_left'][max_idx]
-    bin_min = hist_source_selection['y'].data['edge_left'][min_idx]
 
-    print(bin_max, bin_min)
+def selection_change(attr, old, new, plane):
+    try:
+        max_idx = np.max(hist_source_selection[plane].selected['1d']['indices'])
+        min_idx = np.min(hist_source_selection[plane].selected['1d']['indices'])
+    except ValueError:
+        bin_max = 0
+        bin_min = 0
+    else:
+        bin_max = hist_source_selection[plane].data['edge_left'][max_idx]
+        bin_min = hist_source_selection[plane].data['edge_left'][min_idx]
 
-    peak = hit_source_static['y'].data['peak']
+    print('{}-plane bin selection: {}, {}'.format(plane, bin_min, bin_max))
 
-    idx = np.where((peak < bin_max) & (peak > bin_min))
-    select_hits = dict(wire=hit_source_static['y'].data['wire'][idx], tick=hit_source_static['y'].data['tick'][idx])
-    hits_sel.data_source.data = select_hits
+    hist = hit_source_static[plane].data[dimensions[dim_select.value]]
+
+    idx = np.where((hist < bin_max) & (hist > bin_min))
+    select_hits = dict(wire=hit_source_static[plane].data['wire'][idx], tick=hit_source_static[plane].data['tick'][idx])
+    hit_source_selection[plane].data.update(select_hits)
+
+
+def dimension_change(attr, old, new):
+    hist, hist_selection = get_data_histo(dimensions[dim_select.value])
+    for [plane_static, source_static], [plane_sel, source_sel] in zip(hist_source.items(), hist_source_selection.items()):
+        source_static.data.update(hist[plane_static].data)
+        source_sel.data.update(hist_selection[plane_sel].data)
 
 
 # Initilaization
@@ -133,6 +147,9 @@ filename = "LaserReco-LaserHit-7267-0789_digitfilter-exp-roi.root"
 data = LarData(base_dir + filename)
 data.read_ids()
 data.read_hits(planes="u")
+
+dimensions = {"Amplitude": 'peaks',
+              "Width": 'width'}
 
 # plots and controls
 planes = {0: 'u', 1: 'v', 2: 'y'}
@@ -152,23 +169,12 @@ plot_hists = {plane: figure(title="{}-plane histo".format(plane),
 event_select = TextInput(value='1')
 back_btn = Button(label='<')
 fwrd_btn = Button(label='>')
-hist_select = Select(value='Amplitude', options=['Amplitude', 'Width', 'Area'])
+dim_select = Select(value='Amplitude', options=sorted(dimensions.keys()))
 
 # definitions / data
 event = 1
 hit_source_static, hit_source_selection = get_data_hits(data, event)
 hist_source, hist_source_selection = get_data_histo('peaks')
-
-# histogram plot
-plot_hists['y'].quad(top='hist', source=hist_source['y'], bottom=0,
-               left='edge_left', right='edge_right',
-               fill_color="#036564", line_color="#033649",
-               )
-hist_bkgnd = plot_hists['y'].circle('edge_left', 'hist',
-                              selection_color="orange",
-                              source=hist_source_selection['y'],
-                              fill_color=None,
-                              line_alpha=0)
 
 hits, hits_sel = {}, {}
 histos, histos_sel = {}, {}
@@ -194,15 +200,17 @@ for plane in planes.values():
 uplots = row(plot_hits['u'], plot_hists['u'])
 vplots = row(plot_hits['v'], plot_hists['v'])
 yplots = row(plot_hits['y'], plot_hists['y'])
-cntrl = widgetbox(back_btn, event_select, fwrd_btn, hist_select)
+cntrl = [back_btn, event_select, fwrd_btn, dim_select]
 main_col = column(row(cntrl), uplots, vplots, yplots)
 
 # callbacks
 event_select.on_change('value', update_plots)
 back_btn.on_click(partial(update_plots, attr='<', old='', new=''))
 fwrd_btn.on_click(partial(update_plots, attr='>', old='', new=''))
+dim_select.on_change('value', dimension_change)
+for plane in planes.values():
+    hist_source_selection[plane].on_change('selected', partial(selection_change, plane=plane))
 
-hist_source_selection['y'].on_change('selected', selection_change)
-
+# output
 curdoc().add_root(main_col)
 curdoc().title = "Sliders"
