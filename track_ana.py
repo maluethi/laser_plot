@@ -189,12 +189,13 @@ tick_limits = [3200, 9600]
 
 
 plot_hits = {plane: figure(title='{}-plane hits'.format(plane), plot_width=1200, plot_height=300,
-                           x_range=wire_limits[plane], y_range=tick_limits
+                           x_range=wire_limits[plane], y_range=tick_limits, x_axis_label='wire', y_axis_label="time tick"
                            ) for plane in planes.values()}
 
 plot_hists = {plane: figure(title="{}-plane histo".format(plane),
                             plot_width=300, plot_height=300,
-                            tools='pan,wheel_zoom,xbox_select,reset'
+                            tools='pan,wheel_zoom,xbox_select,reset',
+                            y_axis_label="entries"
                             ) for plane in planes.values()}
 
 # controls
