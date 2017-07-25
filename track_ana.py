@@ -164,6 +164,8 @@ def reload_data(basedir, event):
     subrun = int(event / 50)
     filename = glob.glob1(basedir, "*{}*".format(subrun))
 
+    print("loading file: {}".format(filename))
+
     if len(filename) > 1:
         raise ValueError("Found multiple files matching the expected subrun!")
 
@@ -174,6 +176,7 @@ def reload_data(basedir, event):
     return df
 
 # Initilaization
+#start_event = 31401
 start_event = 39450
 base_dir = "/home/data/uboone/laser/7267/out/roi/"
 data = reload_data(base_dir, start_event)
