@@ -35,7 +35,7 @@ def get_width(dt, eventid, plane):
 
 # Get all the files
 outdir = "./data/"
-qualifier = "cosmic"
+qualifier = "roi"
 base_dir = "/home/data/uboone/laser/7267/out/{}/".format(qualifier)
 filenames = sorted(glob1(base_dir, "LaserReco-*"))
 
@@ -46,12 +46,12 @@ histos = {dim: {plane: [] for plane in range(3)} for dim in dims}
 edges = {dim: {plane: [] for plane in range(3)} for dim in dims}
 getters = {dim: getter for dim, getter in zip(dims, getters)}
 
-ampl_ranges = {0: [-1000, 0], 1: [0, 1000], 2: [0, 1000]}
+ampl_ranges = {0: [-2000, 0], 1: [0, 2000], 2: [0, 2000]}
 ampl_bins = 500
 width_ranges = {0: [0,150], 1: [0, 150], 2: [0, 150]}
 width_bins = 150
 inte_ranges = {0: [0, 5000], 1: [0, 5000], 2: [0, 5000]}
-inte_bins = 1000
+inte_bins = 500
 
 ranges = {dim: r for r,dim in zip([ampl_ranges, width_ranges, inte_ranges],dims) }
 bins = {dim: bins for dim, bins in zip(dims, [ampl_bins, width_bins, inte_bins])}
