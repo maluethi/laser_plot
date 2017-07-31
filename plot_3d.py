@@ -6,8 +6,9 @@ from mayavi import mlab
 
 
 input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
-input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoDispl-100.root'
-
+input_filename = '/home/matthias/workspace/FieldCalibration/output/TrueDistortion-10.root'
+# check this for more fun:
+# http://docs.enthought.com/mayavi/mayavi/mlab.html#d-plotting-functions-for-numpy-arrays
 
 dist_raw = laru.get_histos(input_filename)
 distortion = laru.make_array(dist_raw).view(np.recarray)
