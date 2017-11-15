@@ -16,13 +16,13 @@ y_max, y_min  = 0.33, -0.18
 norm_zy = mpl.colors.Normalize(vmin=y_min, vmax=y_max)
 cm_zy = cm.ScalarMappable(norm=norm_zy, cmap=cmap)
 
-run = 7267
+run = ''
 
 base_dir = '/home/matthias/workspace/laserana/python/utils/'
-tracks_filename = "data/laser-tracks-{}-test-roi.npy".format(run)
-laser_filename = "data/laser-data-{}-test-roi-calib2.npy".format(run)
+tracks_filename = "data/laser-tracks-{}-test-calib-sym.npy".format(run)
+laser_filename = "data/laser-data-{}-test-calib-sym.npy".format(run)
 
-
+         
 tracks = np.load(base_dir + tracks_filename, encoding = 'latin1')
 laser = np.load(base_dir + laser_filename, encoding = 'latin1')
 
@@ -75,6 +75,7 @@ ax_zx.grid()
 
 #ax_zy.set_ylim([-30, 100])
 ax_zy.set_xlim([0, 1000])
+ax_zy.set_ylim([-20,20])
 ax_zy.grid()
 
 # labels
