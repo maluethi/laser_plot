@@ -8,8 +8,8 @@ from collections import namedtuple
 import larana.lar_utils as laru
 
 input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
-input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoCorrection-Sim_same.root'
-
+input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoCorrection-Sim-corr.root'
+input_filename = '/home/data/uboone/laser/scratch/SpaceCharge.root'
 
 dist_raw = laru.get_histos(input_filename)
 distortion = laru.make_array(dist_raw).view(np.recarray)
@@ -19,26 +19,26 @@ x, y, z = np.meshgrid(np.linspace(laru.TPC.x_min, laru.TPC.x_max, distortion.sha
                       np.linspace(laru.TPC.z_min, laru.TPC.z_max, distortion.shape[2]))
 
 
-for sl in range(49, distortion.shape[2]):
+for sl in range(0, distortion.shape[1]):
 
     f, ax, = plt.subplots(1, 3, figsize=(12, 5))
     #
-    dist = distortion[:, : , sl]
+    dist = distortion[:, sl, :]
 
     dimens = {0: 'dx',
               1: 'dy',
               2: 'dz',}
 
-    limits = {0: [-5, 0],
-              1: [-20, 20],
-              2: [-5, 5]}
+    limits = {0: [-50, 50],
+              1: [-50, 50],
+              2: [-50, 50]}
 
     ax[1].set_title("z={:.1f} [cm]".format(sl * 1036/101))
 
     for dim in range(3):
         #qu = ax.contourf(z[sl, :, :], x[sl, :, :], dist.dx, cmap=cm.Spectral, vmin=-20, vmax=20, interpolation=None)
         #qu.cmap.set_over('#FFFFFF')
-        im = ax[dim].imshow(dist[dimens[dim]].T, cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
+        im = ax[dim].imshow(dist[dimens[dim]].T, cmap=cm.Spectral) #, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
         im.cmap.set_over('#FFFFFF')
 
 
