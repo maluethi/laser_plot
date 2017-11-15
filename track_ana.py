@@ -10,6 +10,8 @@ import glob
 from larana.lar_data import LarData
 import numpy as np
 
+import argparse
+import os
 
 #@lru_cache(maxsize=100)
 def get_plane_idx(dt, plane_id):
@@ -162,24 +164,41 @@ def dimension_change(attr, old, new):
 
 def reload_data(basedir, event):
     subrun = int(event / 50)
-    filename = glob.glob1(basedir, "*{}*".format(subrun))
+    filename = [glob.glob1(basedir, "*Reco*{}*".format(subrun))[0]]
 
     print("loading file: {}".format(filename))
 
     if len(filename) > 1:
         raise ValueError("Found multiple files matching the expected subrun!")
 
-    df = LarData(base_dir + filename[0])
+    df = load_file(basedir + filename[0])
+    return df
+
+def load_file(path_to_file):
+    df = LarData(path_to_file)
     df.read_ids()
     df.read_hits(planes="u")
 
     return df
 
 # Initilaization
-#start_event = 31401
-start_event = 39450
-base_dir = "/home/data/uboone/laser/7267/out/roi/"
-data = reload_data(base_dir, start_event)
+
+parser = argparse.ArgumentParser(description='Bokeh Display of larsoft hits')
+parser.add_argument('file', type=str, help='path to data base directory')
+parser.add_argument('-e', type=int, dest='event', required=False, default=0,
+                    help='particular event number to be shown, relative in file')
+args = parser.parse_args()
+
+start_event = args.event
+base_dir = args.file  # "/home/data/uboone/laser/7267/out/roi/"
+
+if os.path.isdir(base_dir):
+    data = reload_data(base_dir, start_event)
+elif os.path.isfile(base_dir):
+    data = load_file(base_dir)
+else:
+    raise FileNotFoundError("Input \"{}\" File/Path does not exist".format(base_dir))
+
 print(data.ids)
 # definitions
 dimensions = {"Amplitude": 'peaks',
