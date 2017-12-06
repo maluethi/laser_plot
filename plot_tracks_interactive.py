@@ -4,10 +4,14 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.collections
 
-filename = "/home/data/uboone/laser/scratch/Tracks-0006-000-with-hits.root"
+filename = "/home/data/uboone/laser/7267/tracks/Tracks-7267-789.root"
+#filename = "/home/data/uboone/laser/sim/Track-UBsim.root"
 dimens = {"laser": 0, "reco": 1, "mc": 2}
 lard = LarData(filename)
-event = lard[2]
+event = lard[0]
+
+print(event)
+
 sc_zx = []
 
 dim = dimens["mc"]
@@ -48,20 +52,17 @@ def update(idx):
 
 fig, axes = make_figure(tpc_box=True)
 
-# callback = Idx()
-#
-# axgoto= plt.axes([0.6, 0.05, 0.05, 0.04])
-# axprev = plt.axes([0.7, 0.05, 0.1, 0.04])
-# axnext = plt.axes([0.81, 0.05, 0.1, 0.04])
-#
-# goto = Button(axgoto, 'Next', hovercolor='0.975')
-# button_next = Button(axnext, 'Next', hovercolor='0.975')
-# button_prev = Button(axprev, 'Prev', hovercolor='0.975')
-#
-# button_next.on_clicked(callback.nxt)
-# button_prev.on_clicked(callback.prv)
+callback = Idx()
+axgoto= plt.axes([0.6, 0.05, 0.05, 0.04])
+axprev = plt.axes([0.7, 0.05, 0.1, 0.04])
+axnext = plt.axes([0.81, 0.05, 0.1, 0.04])
+goto = Button(axgoto, 'Next', hovercolor='0.975')
+button_next = Button(axnext, 'Next', hovercolor='0.975')
+button_prev = Button(axprev, 'Prev', hovercolor='0.975')
+button_next.on_clicked(callback.nxt)
+button_prev.on_clicked(callback.prv)
 
-plot_edges(axes, event[0].entry, event[0].exit, color="g")
+#plot_edges(axes, event[0].entry, event[0].exit, color="g")
 plot_tracks(event[1], axes, marker="o", color="b")
 plot_tracks(event[2], axes, marker="x", color="r")
 plt.show()
