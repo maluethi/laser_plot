@@ -1,30 +1,38 @@
 from larana.lar_utils import read_tracks, read_laser, disassemble_laser, disassemble_track, make_figure, plot_track, \
-    plot_edges
+    plot_edges, find_unique_polar_idx
 import numpy as np
 
 import matplotlib.pyplot as plt
 
-run = 7267
+run = 7252
+postfix = 'inv'
 
-base_dir = '/home/matthias/workspace/larana/projects/out/'
-tracks_filename = "laser-tracks-{}.npy".format(run)
-laser_filename = "laser-data-{}.npy".format(run)
+modulo = 200
+
+base_dir = '/home/data/uboone/laser/processed/'
+tracks_filename = "laser-tracks-{}-{}.npy".format(run, postfix)
+laser_filename = "laser-data-{}-{}.npy".format(run, postfix)
 
 tracks = np.load(base_dir + tracks_filename, encoding = 'latin1')
 lasers = np.load(base_dir + laser_filename, encoding = 'latin1')
 
+pol_incs = find_unique_polar_idx(lasers)
 
 # loop over all tracks in the file
-for laser, track in zip(lasers, tracks):
+for pol_idx in pol_incs[:2]:
     fig, ax = make_figure()
-    lasr_entry, lasr_exit, dir, _, evt = disassemble_laser(laser)
+    for idx, (laser, track) in enumerate(zip(lasers[pol_idx], tracks[pol_idx])):
 
-    print(lasr_entry, lasr_exit)
+        lasr_entry, lasr_exit, dir, _, evt = disassemble_laser(laser)
 
-    track_points, evt = disassemble_track(track)
-    plot_track(track_points.x, track_points.y, track_points.z, ax, linestyle="", marker="o")
+        print(lasr_entry, lasr_exit)
+        track_points, evt = disassemble_track(track)
+        plot_track(track_points.x, track_points.y, track_points.z, ax, linestyle="", marker="o")
 
-    plot_edges(ax, lasr_entry.tolist(), lasr_exit.tolist(), color='black', alpha=0.4)
+        plot_edges(ax, lasr_entry.tolist(), lasr_exit.tolist(), color='black', alpha=0.4)
 
-    ax[0].set_title("Event {}".format(evt))
+        ax[0].set_title("Event {}".format(evt))
+        if idx % modulo == 0:
+            plt.show()
+            fig, ax = make_figure()
     plt.show()
