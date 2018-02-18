@@ -6,7 +6,11 @@ from numpy import sqrt, pi, exp
 from matplotlib.offsetbox import AnchoredText
 
 from lmfit import  Model
+import matplotlib
+font = {'family' : 'normal',
+        'size'   : 25}
 
+matplotlib.rc('font', **font)
 
 def gaussian(x, amp, cen, wid):
     "1-d gaussian: gaussian(x, amp, cen, wid)"
@@ -24,7 +28,7 @@ x = np.transpose(w * b.T)
 loc = [500, 2000, 3000]
 lo = [1,2,2]
 for i, l in enumerate(loc):
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(10,10))
 
     n, bins, patches = ax.hist(maximas[l], bins=2000)
 
@@ -65,7 +69,7 @@ for i, l in enumerate(loc):
     plt.show()
 
 
-fig, ax = plt.subplots(figsize=(10,5))
+fig, ax = plt.subplots(figsize=(15,7))
 
 plt.hist2d(x.flatten(), maximas.flatten(), bins=(3456, 2000))
 plt.ylim([950, 1100])
@@ -76,9 +80,9 @@ plt.ylabel('ADC tick')
 
 labels = ['A', 'B', 'C']
 for x, y, s in zip(loc, 3*[951], labels):
-    plt.text(x+10,y,s, size=20, )
+    plt.text(x+10,y,s, size=25, color='w')
 
-plt.vlines([500, 2000, 3000], 950, 1100,label=labels, linestyles='dashed', colors='k')
+plt.vlines([500, 2000, 3000], 950, 1100,label=labels, linestyles='dashed', colors='white')
 fig.tight_layout()
 plt.show()
 
