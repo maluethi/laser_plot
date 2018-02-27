@@ -7,39 +7,59 @@ from matplotlib import cm
 from collections import namedtuple
 import larana.lar_utils as laru
 
-input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
-input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoCorrection-Sim-corr.root'
-input_filename = '/home/data/uboone/laser/scratch/SpaceCharge.root'
+#input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
+#input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoDispl-ubsim-10.root'
+sim_filename = '/home/data/uboone/laser/sim/SpaceCharge.root'
+data_filename = '/home/data/uboone/laser/processed/maps/TrueDist-N3-S50-toyMC-Intpl-2side-Anode.root'
+#data_filename = '/home/matthias/workspace/his_fieldcal/cmake/RecoCorr-Simu.root'
 
-dist_raw = laru.get_histos(input_filename)
+#data_filename = '/home/matthias/mnt/lheppc2/maluethi/FieldCalibration/build/RecoCorr-Simu1.root'
+
+dist_raw = laru.get_histos(data_filename)
+dist_sim = laru.get_histos(sim_filename)
+
 distortion = laru.make_array(dist_raw).view(np.recarray)
+simulation = laru.make_array(dist_sim).view(np.recarray)
 
 x, y, z = np.meshgrid(np.linspace(laru.TPC.x_min, laru.TPC.x_max, distortion.shape[0]),
                       np.linspace(laru.TPC.y_min, laru.TPC.y_max, distortion.shape[1]),
                       np.linspace(laru.TPC.z_min, laru.TPC.z_max, distortion.shape[2]))
 
 
-for sl in range(0, distortion.shape[1]):
-
+for sl in range(10, 51):
+    print(sl)
     f, ax, = plt.subplots(1, 3, figsize=(12, 5))
     #
-    dist = distortion[:, sl, :]
+    dist = distortion[:,:, sl]
+    siml = simulation[:,:, sl]
 
     dimens = {0: 'dx',
               1: 'dy',
               2: 'dz',}
 
-    limits = {0: [-50, 50],
-              1: [-50, 50],
-              2: [-50, 50]}
+    limits_true = {0: [-10., 10.],
+              1: [-15, 15],
+              2: [-5, 5]}
+
+    limits_sim = {0: [-1, 1],
+                  1: [-1, 1],
+                  2: [-1, 1]}
+
+    limits = limits_sim
 
     ax[1].set_title("z={:.1f} [cm]".format(sl * 1036/101))
 
     for dim in range(3):
         #qu = ax.contourf(z[sl, :, :], x[sl, :, :], dist.dx, cmap=cm.Spectral, vmin=-20, vmax=20, interpolation=None)
         #qu.cmap.set_over('#FFFFFF')
-        im = ax[dim].imshow(dist[dimens[dim]].T, cmap=cm.Spectral) #, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
+
+        data = dist[dimens[dim]].T
+        simu = siml[dimens[dim]].T
+
+        im = ax[dim].imshow((data - simu), cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
+
         im.cmap.set_over('#FFFFFF')
+        im.cmap.set_under('#FFFFFF')
 
 
         ax[dim].set_xlabel("x [cm]")
@@ -64,5 +84,7 @@ for sl in range(0, distortion.shape[1]):
 
     ax[0].set_ylabel("y [cm]")
 
-    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+    #plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+    f.tight_layout()
+    f.savefig("data-100.png", bbox_inches=0, transparent=True)
     plt.show()

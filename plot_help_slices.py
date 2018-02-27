@@ -41,12 +41,13 @@ for s, e in combinations(np.array(list(product([0,1], [0,2.1], [0,1]))), 2):
         ax.plot3D(*zip(s, e), color="black")
 
 # draw surface
-X, Y = np.meshgrid(r, r)
-ax.plot_surface(X,0.1, Y, alpha=0.5)
-ax.plot_surface(X,1,Y, alpha=0.5)
-ax.plot_surface(X,1.9,Y, alpha=0.5)
+X, Y = np.meshgrid(r,r)
+ax.plot_surface(X,2*Y, 0.2, alpha=0.5)
+ax.plot_surface(X,2*Y, 0.5, alpha=0.5)
+#ax.plot_surface(X,1.9,Y, alpha=0.5)
 
 plt.axis('off')
 set_axes_equal(ax)
-plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+fig.tight_layout()
+fig.savefig("sli.svg", bbox_inches=0, transparent=True)
 plt.show()

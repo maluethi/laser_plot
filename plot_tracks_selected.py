@@ -5,13 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 run = 7252
-postfix = 'inv'
+postfix = '-calib'
 
-modulo = 200
+modulo = 100
 
-base_dir = '/home/data/uboone/laser/processed/'
-tracks_filename = "laser-tracks-{}-{}.npy".format(run, postfix)
-laser_filename = "laser-data-{}-{}.npy".format(run, postfix)
+base_dir = '/home/data/uboone/laser/processed/sim/'
+tracks_filename = "laser-tracks-2-diff.npy".format(run, postfix)
+laser_filename = "laser-data-2-diff.npy".format(run, postfix)
 
 tracks = np.load(base_dir + tracks_filename, encoding = 'latin1')
 lasers = np.load(base_dir + laser_filename, encoding = 'latin1')
@@ -19,8 +19,9 @@ lasers = np.load(base_dir + laser_filename, encoding = 'latin1')
 pol_incs = find_unique_polar_idx(lasers)
 
 # loop over all tracks in the file
-for pol_idx in pol_incs[:2]:
-    fig, ax = make_figure()
+fig, ax = make_figure()
+for pol_idx in pol_incs:
+
     for idx, (laser, track) in enumerate(zip(lasers[pol_idx], tracks[pol_idx])):
 
         lasr_entry, lasr_exit, dir, _, evt = disassemble_laser(laser)
@@ -32,7 +33,8 @@ for pol_idx in pol_incs[:2]:
         plot_edges(ax, lasr_entry.tolist(), lasr_exit.tolist(), color='black', alpha=0.4)
 
         ax[0].set_title("Event {}".format(evt))
-        if idx % modulo == 0:
+        if idx % modulo == 0 and idx != 0:
             plt.show()
             fig, ax = make_figure()
-    plt.show()
+
+plt.show()
