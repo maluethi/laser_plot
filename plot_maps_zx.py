@@ -6,11 +6,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import cm
 from collections import namedtuple
 import larana.lar_utils as laru
+import matplotlib as mp
 
 #input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
 #input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoDispl-ubsim-10.root'
 sim_filename = '/home/data/uboone/laser/sim/SpaceCharge.root'
-data_filename = '/home/data/uboone/laser/processed/maps/RecoCorr-N3-S50-newCalibSelectData-2side-Anode.root'
+data_filename = '/home/data/uboone/laser/processed/maps/smooth/RecoCorr-N3-S50-newselectCalibData-2side-Anode-extrasmooth.root'
+#data_filename = '/home/matthias/workspace/his_fieldcal/cmake/RecoCorr-Simu.root'
 #data_filename = '/home/matthias/workspace/his_fieldcal/cmake/RecoCorr-Simu.root'
 
 #data_filename = '/home/matthias/mnt/lheppc2/maluethi/FieldCalibration/build/RecoCorr-Simu1.root'
@@ -47,7 +49,7 @@ for sl in range(23, 25):
 
     limits = limits_true
     d = 232 / 26
-    ax[0].set_title("y={:.1f} [cm]".format(d*sl - 116.5))
+    ax[0].set_title("y={:.1f} [cm]".format(-(d*sl - 116.5)))
 
     for dim in range(3):
         #qu = ax.contourf(z[sl, :, :], x[sl, :, :], dist.dx, cmap=cm.Spectral, vmin=-20, vmax=20, interpolation=None)
@@ -56,7 +58,7 @@ for sl in range(23, 25):
         data = dist[dimens[dim]]
         simu = siml[dimens[dim]]
 
-        im = ax[dim].imshow((data), cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
+        im = ax[dim].imshow(data, cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
 
         im.cmap.set_over('#FFFFFF')
         im.cmap.set_under('#FFFFFF')
@@ -72,7 +74,7 @@ for sl in range(23, 25):
         cax.set_title("{} [cm]".format(dimens[dim]))
         plt.colorbar(im, cax)
         ax[dim].invert_yaxis()
-        ax[dim].set_ylabel('y [cm]')
+        ax[dim].set_ylabel('x [cm]')
 
     # ax.set_title("y=" + str((start_slice+idx )*((232)/25) - 116) +"cm")
     # #ax.set_title("y=" + str((start_slice + idx) * 10) + "cm")
@@ -84,5 +86,5 @@ for sl in range(23, 25):
 
     #plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     f.tight_layout()
-    #f.savefig("data-100.png", bbox_inches=0, transparent=True)
+    f.savefig("slice-{}.png".format(sl), bbox_inches=0, transparent=True)
     plt.show()
