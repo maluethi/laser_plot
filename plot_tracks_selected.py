@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 run = 7252
 postfix = '-calib'
 
-modulo = 100
+modulo = 1000
 
 base_dir = '/home/data/uboone/laser/processed/sim/'
-tracks_filename = "laser-tracks-2-diff.npy".format(run, postfix)
-laser_filename = "laser-data-2-diff.npy".format(run, postfix)
+tracks_filename = "laser-tracks-2_truex.npy".format(run, postfix)
+laser_filename = "laser-data-2_truex.npy".format(run, postfix)
+
+downsample = 10
 
 tracks = np.load(base_dir + tracks_filename, encoding = 'latin1')
 lasers = np.load(base_dir + laser_filename, encoding = 'latin1')
@@ -28,7 +30,7 @@ for pol_idx in pol_incs:
 
         print(lasr_entry, lasr_exit)
         track_points, evt = disassemble_track(track)
-        plot_track(track_points.x, track_points.y, track_points.z, ax, linestyle="", marker="o")
+        plot_track(track_points.x[::downsample], track_points.y[::downsample], track_points.z[::downsample], ax, linestyle="", marker="o")
 
         plot_edges(ax, lasr_entry.tolist(), lasr_exit.tolist(), color='black', alpha=0.4)
 
