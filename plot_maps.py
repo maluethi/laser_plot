@@ -10,8 +10,8 @@ import larana.lar_utils as laru
 #input_filename = '/home/matthias/workspace/my_fieldcorr/output/RecoDispl-exp-roii.root'
 #input_filename = '/home/matthias/workspace/FieldCalibration/output/RecoDispl-ubsim-10.root'
 sim_filename = '/home/data/uboone/laser/sim/SpaceCharge.root'
-data_filename = '/home/data/uboone/laser/processed/maps/TrueDist-N3-S50-toyMC-Intpl-2side-Anode.root'
-#data_filename = '/home/matthias/workspace/his_fieldcal/cmake/RecoCorr-Simu.root'
+#data_filename = '/home/data/uboone/laser/processed/maps/RecoCorr-N3-S50-newselectcalibData-2side-Anode-smooth.root'
+data_filename = '/home/matthias/workspace/his_fieldcal/cmake/RecoCorr-Simu.root'
 
 #data_filename = '/home/matthias/mnt/lheppc2/maluethi/FieldCalibration/build/RecoCorr-Simu1.root'
 
@@ -26,26 +26,26 @@ x, y, z = np.meshgrid(np.linspace(laru.TPC.x_min, laru.TPC.x_max, distortion.sha
                       np.linspace(laru.TPC.z_min, laru.TPC.z_max, distortion.shape[2]))
 
 
-for sl in range(10, 51):
+for sl in range(100):
     print(sl)
     f, ax, = plt.subplots(1, 3, figsize=(12, 5))
     #
-    dist = distortion[:,:, sl]
-    siml = simulation[:,:, sl]
+    dist = distortion[:,sl, :]
+    siml = simulation[:,sl, :]
 
     dimens = {0: 'dx',
               1: 'dy',
               2: 'dz',}
 
     limits_true = {0: [-10., 10.],
-              1: [-15, 15],
+              1: [-20, 20],
               2: [-5, 5]}
 
     limits_sim = {0: [-1, 1],
                   1: [-1, 1],
                   2: [-1, 1]}
 
-    limits = limits_sim
+    limits = limits_true
 
     ax[1].set_title("z={:.1f} [cm]".format(sl * 1036/101))
 
@@ -56,7 +56,7 @@ for sl in range(10, 51):
         data = dist[dimens[dim]].T
         simu = siml[dimens[dim]].T
 
-        im = ax[dim].imshow((data - simu), cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
+        im = ax[dim].imshow(data , cmap=cm.Spectral, vmin=limits[dim][0], vmax=limits[dim][1], interpolation=None)
 
         im.cmap.set_over('#FFFFFF')
         im.cmap.set_under('#FFFFFF')
@@ -86,5 +86,5 @@ for sl in range(10, 51):
 
     #plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
     f.tight_layout()
-    f.savefig("data-100.png", bbox_inches=0, transparent=True)
-    plt.show()
+    f.savefig("./output/slice_zy/sclice-{}.png".format(sl), bbox_inches=0, transparent=True)
+    #plt.show()
