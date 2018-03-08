@@ -16,11 +16,11 @@ y_max, y_min  = 0.33, -0.18
 norm_zy = mpl.colors.Normalize(vmin=y_min, vmax=y_max)
 cm_zy = cm.ScalarMappable(norm=norm_zy, cmap=cmap)
 
-run = 1
+run = 2
 
-base_dir = '/home/data/uboone/laser/processed/sim/'
-tracks_filename = "laser-tracks-021-diff.npy".format(run)
-laser_filename = "laser-data-021-diff.npy".format(run)
+base_dir = '/home/data/uboone/laser/processed/'
+tracks_filename = "laser-tracks-7252-smooth-new.npy".format(run)
+laser_filename = "laser-data-7252-smooth-new-inv.npy".format(run)
 
 #tracks_filename = "sim/laser-tracks-021-diff-inv.npy"
 #laser_filename =  "sim/laser-data-021-diff-inv.npy"
@@ -39,7 +39,7 @@ ax_zy = fig.add_subplot(gs[1, :])
 
 stride = 1
 
-for laser, track in zip(laser[::stride], tracks[::stride]):
+for idx, (laser, track) in enumerate(zip(laser[1::stride], tracks[1::stride])):
     print('processing event {}'.format(track[0]))
     x, y, z = track[1], track[2], track[3]
     laser_entry = np.rec.array([laser[1], laser[2], laser[3]],
@@ -63,7 +63,7 @@ for laser, track in zip(laser[::stride], tracks[::stride]):
     stri = '({:2.0f},{:2.0f},{:2.0f}, m: {})'.format(laser_exit.x.item(0), laser_exit.y.item(0), laser_exit.z.item(0), m_zx)
 
     #ax_zx.text(z[minimum], x[minimum] - true_zx[minimum], stri, fontsize=5)
-    #ax_zy.text(z[minimum], y[minimum] - true_zy[minimum], stri, fontsize=5)
+    #ax_zy.text(z[minimum], y[minimum] - true_zy[minimum], "{}".format(idx), fontsize=5)
     #ax_xy.plot(x, y - true_xy, color=cm_zx.to_rgba(np.tan(m_xy)),  alpha=0.5)
 
 
