@@ -41,7 +41,7 @@ for i, l in enumerate(loc):
 
     ax.set_xlim([950, 1100])
     print(result.fit_report())
-    ax.set_xlabel('Wire')
+    ax.set_xlabel('ADC Tick')
     ax.set_ylabel('N')
 
     amp = result.params['amp']
