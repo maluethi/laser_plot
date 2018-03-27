@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def close_to_track_edge(pt, track, dist=20):
+def close_to_track_edge(pt, track, dist=30):
     x, y, z = track[1], track[2], track[3]
 
     idx_min = np.argmin(z)
@@ -22,10 +22,15 @@ def close_to_track_edge(pt, track, dist=20):
         return False
 
 base_dir = '/home/data/uboone/laser/processed/'
-laser_file1 = base_dir + "laser-data-7267-smooth-calib.npy"
+laser_file1 = base_dir + "laser-data-7267-smooth-calib-calib.npy"
 track_file1 = base_dir + "laser-tracks-7267-smooth.npy"
 laser_file2 = base_dir + "laser-data-7252-smooth-calib-inv.npy"
 track_file2 = base_dir + "laser-tracks-7252-smooth-inv.npy"
+
+#laser_file1 = base_dir + "laser-data-31-cross.npy"
+#track_file1 = base_dir + "laser-tracks-31-cross.npy"
+#laser_file2 = base_dir + "laser-data-23-cross.npy"
+#track_file2 = base_dir + "laser-tracks-23-cross.npy"
 
 
 laser1 = np.load(laser_file1)
@@ -43,9 +48,15 @@ plot = False
 
 data = data[::stride]
 
-dist_true = [df[2][0] for df in data]
-dist_reco = [df[3][0] for df in data]
-dist_d = [df[2][0] - df[3][0] for df in data]
+dist_true = []
+dist_d = []
+
+dreco = np.array([df[2][0] for df in data])
+dtrue = np.zeros(dreco.shape)
+dist_d = np.zeros(dreco.shape)
+
+print(dist_d.shape)
+
 edge = [False for _ in data]
 #fig, ax = laru.make_figure()
 
@@ -69,47 +80,32 @@ for idx, df in enumerate(data):
 
     la1_entry, la1_exit, la1_dir, la1_pos, event = laru.disassemble_laser(la1)
     la2_entry, la2_exit, la2_dir, la2_pos, event = laru.disassemble_laser(la2)
-    #if -4 < (d_true - d_reco) < -2:
-    #    fig, ax = laru.make_figure()
-#
-    #    laru.plot_track(tr1[1], tr1[2], tr1[3], ax, **{'color': 'r'})
-    #    laru.plot_track(tr2[1], tr2[2], tr2[3], ax, **{'color': 'g'})
-#
-    #    laru.plot_edges(ax, la1_entry.tolist(), la1_exit.tolist(), color='black', alpha=0.4)
-    #    laru.plot_edges(ax, la2_entry.tolist(), la2_exit.tolist(), color='black', alpha=0.4)
-#
-    #    laru.plot_point(ax, pt1_reco)
-    #    laru.plot_edges(ax, pt1_reco, pt2_reco)
-    #    laru.plot_edges(ax, pt1_true, pt2_true)
-    #    plt.show()
 
+    d, p, m = geom.get_closest_distance(la1_entry.tolist(), la1_exit.tolist(),
+                                        la2_entry.tolist(), la2_exit.tolist())
+    dtrue[idx] = d
+    dist_d[idx] = d - d_reco
+
+    #dist_d.append(d - dist_d)
 
     if close_to_track_edge(pt1_reco, tr1) or close_to_track_edge(pt2_reco, tr2):
-
-
-        if close_to_track_edge(la1_exit.tolist(), tr1, dist=20):
-            pass #continue
+        if close_to_track_edge(la1_exit.tolist(), tr1, dist=40):
+            pass
         edge[idx] = True
 
 
-
-
-
-
-
-
-
 dist_d_no_edge = [d for d, edg in zip(dist_d, edge) if not edg]
+dist_reco_noedge = [dr for dr, edg in zip(dreco, edge) if edg is False]
+dist_true_noedge = [dt for dt, edg, rec in zip(dist_true, edge, dist_reco_noedge) if edg is False]
 
-dist_reco_noedge = [dr for dr, edg in zip(dist_reco, edge) if edg is False]
-dist_true_noedge = [dt for dt, edg in zip(dist_true, edge) if edg is False]
 
-rng = [-25,25]
-bins=100
-plt.hist(dist_d, bins=bins, range=rng)
+
+fig, ax = plt.subplots(1,1)
+
+rng = [-15,15]
+bins = 30*4
+ax.hist(dist_d, bins=bins, range=rng)
 plt.hist(dist_d_no_edge, bins=bins, range=rng)
-plt.show()
-
-
-plt.hist2d(dist_true_noedge, dist_reco_noedge, bins=10, range=([0,10],[0,10]))
+plt.grid()
+ax.set_xlim(rng)
 plt.show()
