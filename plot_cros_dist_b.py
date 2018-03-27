@@ -20,28 +20,6 @@ def get_gauss_fit(hist, edges):
     result = gmodel.fit(hist, x=edges[:-1], amp=1, cen=0, wid=2)
     return result
 
-# Test plot
-n_tot = 4785
-n_sel = 3382
-
-maxi = 1000
-scale = 6
-np.random.seed(4)
-p0 = 1.2 * np.random.randn(maxi)
-p1 = 0.4 * np.random.randn(50/1000 * maxi) - 2.6
-p1 = 0.2 * np.random.randn(80/1000 * maxi) - 2.6
-p2 = 0.8 * np.random.randn(100/1000 * maxi) + 3.5
-p25 = 0.1 * np.random.randn(10/1000 * maxi) + 3.5
-p3 = - np.abs(10 * np.random.randn(300/1000 * maxi))
-p4 = np.abs(4 * np.random.randn(10/1000 * maxi))
-
-
-mask_h = np.tanh(np.linspace(-20,3, 60))/2. + 0.45
-mask_l = np.tanh(np.linspace(-5,3, 60))/2. + 0.45
-mask = np.concatenate((mask_h, mask_l[::-1]))
-
-all = np.concatenate((p0, p1, p2, p25, p3, p4))
-# end test
 rng = [-2, 2]
 bins = 20*2
 
