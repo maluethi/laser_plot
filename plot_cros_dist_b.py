@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.stats import chisquare
 import matplotlib.pyplot as plt
-from lmfit import  Model
+from lmfit import Model
+from itertools import chain
 from matplotlib.offsetbox import AnchoredText
 
 def gaussian(x, amp, cen, wid):
@@ -10,7 +11,7 @@ def gaussian(x, amp, cen, wid):
 
 plt.style.use('./mythesis.mplstyle')
 
-def get_normed_histo(data):
+def get_normed_histo(data, bins):
     hist, bin_edges = np.histogram(data, bins, range=rng)
     hist = np.divide(hist, np.sum(hist))
     return hist, bin_edges
@@ -21,14 +22,22 @@ def get_gauss_fit(hist, edges):
     return result
 
 rng = [-2, 2]
-bins = 20*2
+bins = 20*2 + 1
 
 # Chi squared
-fig, axes = plt.subplots(1,2, sharey=True, figsize=[4.670, 3])
+fig, axes = plt.subplots(3,3, sharey=True, sharex=True, figsize=[4.670, 6])
 
-for dx, ax in zip(('0', '+1'), axes):
-    df = np.load('output/cross_dist/dist-{}.npy'.format(dx)).flatten()
-    hist, bin_edges = get_normed_histo(df)
+drx1 = np.linspace(-.5,.5,3)
+drx2 = 0
+drx3 = np.linspace(-1,1,3)
+range1, range2, range3 = np.meshgrid(drx1, drx2, drx3)
+print(range1, range3)
+for dx,dy,dz, ax in zip(range3.flatten(), range2.flatten(), range1.flatten(), chain(*axes)):
+    frame = "-x_{:.1f}".format(dx) + "_y_{:.1f}".format(dy) + "_z_{:.1f}".format(dz)
+
+    df = np.load('output/cross_dist/dist{}.npz'.format(frame))
+    dist_d = df['d']
+    hist, bin_edges = get_normed_histo(dist_d, bins)
     result = get_gauss_fit(hist, bin_edges)
 
     ax.bar(bin_edges[:-1], hist, width=(bin_edges[1]-bin_edges[0]), label='full set')
@@ -36,11 +45,11 @@ for dx, ax in zip(('0', '+1'), axes):
     ax.plot(bin_edges[:-1], result.best_fit, 'purple', label='best fit', alpha=0.5)
 
     ax.set_xlim(min(bin_edges), max(bin_edges))
-    ax.set_ylim([0,0.3])
-    ax.set_xlabel("$\Delta$ (true - reco) [cm]")
+    ax.set_ylim([0,0.35])
+    #ax.set_xlabel("$\Delta$ (true - reco) [cm]")
 
     ax.grid()
-    ax.set_title('$\Delta x = {} cm$'.format(dx))
+
     ax.set_axisbelow(True)
     #ax.legend()
 
@@ -53,7 +62,10 @@ for dx, ax in zip(('0', '+1'), axes):
     #anchored_text = AnchoredText(textstr, loc=2)
     #ax.add_artist(anchored_text)
 
-axes[0].set_ylabel("density")
+for idx in range(3):
+    axes[idx][0].set_ylabel('$\Delta x = {} cm$'.format(drx3[idx]))
+    axes[0][idx].set_title('$\Delta z = {} cm$'.format(drx1[idx]))
+    axes[2][idx].set_xlabel("$\Delta_{cross}$ [cm]")
 
-plt.tight_layout()
+#plt.tight_layout()
 plt.show()
