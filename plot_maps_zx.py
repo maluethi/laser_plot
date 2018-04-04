@@ -27,10 +27,10 @@ x, y, z = np.meshgrid(np.linspace(laru.TPC.x_min, laru.TPC.x_max, distortion.sha
                       np.linspace(laru.TPC.y_min, laru.TPC.y_max, distortion.shape[1]),
                       np.linspace(laru.TPC.z_min, laru.TPC.z_max, distortion.shape[2]))
 
-
+plt.style.use('./mythesis.mplstyle')
 for sl in range(23, 25):
     print(sl)
-    f, ax, = plt.subplots(3, 1, figsize=(10, 9))
+    f, ax, = plt.subplots(3, 1,)
     #
     dist = distortion[:,sl, :]
     siml = simulation[:,sl, :]
@@ -85,6 +85,6 @@ for sl in range(23, 25):
     ax[2].set_xlabel("z [cm]")
 
     #plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-    f.tight_layout()
+    #f.tight_layout()
     f.savefig("slice-{}.png".format(sl), bbox_inches=0, transparent=True)
     plt.show()

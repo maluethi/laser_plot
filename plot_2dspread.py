@@ -13,7 +13,6 @@ def gaussian(x, amp, cen, wid):
     return (amp/(np.sqrt(2*np.pi)*wid)) * np.exp(-(x-cen)**2 /(2*wid**2))
 
 
-
 def get_normed_histo(data, bins, rang):
     hist, bin_edges = np.histogram(data, bins, range=rang)
     hist = np.divide(hist, np.sum(hist))

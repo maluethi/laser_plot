@@ -10,7 +10,9 @@ filename = "/home/data/uboone/laser/sim/Tracks-lcs2-021-diffff.root"
 #filename = "/home/data/uboone/laser/sim/Tracks-lcs2-021-nosce.root"
 #filename = "~/mnt/lheppc2/maluethi/larsoft/larana/scratch/Tracks-0024-000-nosce.root"
 
-tracks = read_tracks(filename, identifier="Tracks")
+filename = "/home/data/uboone/laser/sim/Tracks-lcs2-023_true.root"
+
+tracks = read_tracks(filename, identifier="True")
 lasers = read_laser(filename)
 
 # generate event id lists, since there are more tracks than events
