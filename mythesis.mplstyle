@@ -15,7 +15,7 @@ font.size           : 11.0
 font.serif          : TeX Gyre Pagella
 
 
-figure.figsize   : 4.670, 4
+figure.figsize   : 4.670, 4 # Latex templeate is 4.670, 10.4167
 
 image.cmap   : viridis           # A colormap name, gray etc...
 image.lut    : 256               # the size of the colormap lookup table

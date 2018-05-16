@@ -23,7 +23,28 @@ maximas = np.concatenate(res, axis=1)
 w = np.arange(0,3456)
 b = np.ones(maximas.shape)
 x = np.transpose(w * b.T)
+loc = list(range(250,3456,250))
 
+fig, ax = plt.subplots(figsize=(15,7))
+
+plt.hist2d(x.flatten(), maximas.flatten(), bins=(3456, 2000))
+plt.ylim([950, 1100])
+plt.colorbar(label='N')
+plt.xlabel('Wire')
+plt.ylabel('ADC tick')
+
+
+labels = list(range(len(loc)))
+print(labels)
+for x, y, s in zip(loc, len(loc)*[951], labels):
+    print(x)
+    ax.text(x+10,y,str(s), size=25, color='w')
+
+plt.vlines(loc, 950, 1100, linestyles='dashed', colors='white')
+fig.tight_layout()
+plt.show()
+
+exit()
 
 loc = [500, 2000, 3000]
 lo = [1,2,2]
@@ -69,21 +90,6 @@ for i, l in enumerate(loc):
     plt.show()
 
 
-fig, ax = plt.subplots(figsize=(15,7))
 
-plt.hist2d(x.flatten(), maximas.flatten(), bins=(3456, 2000))
-plt.ylim([950, 1100])
-plt.colorbar(label='N')
-plt.xlabel('Wire')
-plt.ylabel('ADC tick')
-
-
-labels = ['A', 'B', 'C']
-for x, y, s in zip(loc, 3*[951], labels):
-    plt.text(x+10,y,s, size=25, color='w')
-
-plt.vlines([500, 2000, 3000], 950, 1100,label=labels, linestyles='dashed', colors='white')
-fig.tight_layout()
-plt.show()
 
 
