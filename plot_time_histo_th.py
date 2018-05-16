@@ -19,16 +19,28 @@ def gaussian(x, amp, cen, wid):
 parser = argparse.ArgumentParser(description='Plotting Time Histograms')
 parser.add_argument('-p', dest='prod', action='store_true', default=False, help='production')
 args = parser.parse_args()
+error_estimate = 0.2
+
+to_mm = 1E-5
+v_drift = laru.drift_speed(0.273) * to_mm # mm/us
+v_drift_plus = laru.drift_speed((1 + error_estimate) * 0.273) * to_mm # cm/us
+v_drift_minus = laru.drift_speed((1 - error_estimate) * 0.273) * to_mm # cm/us
+
+print(v_drift_plus - v_drift_minus, )
 
 # main variables for this plot
 loc = [500,1750,3000]
 raw_event = 305
-time_limit = [460, 560]
+
 # ADC to units: fixed time scaling 1 ADC Tick = 0.5us
 #               12bit ADC 2Vpp
 tick2time = 0.5
 meas2volt = 0.488
-v_drift = laru.drift_speed(0.273) * 1E-6 # cm/us
+
+window_offset = 900
+
+time_limit = np.array([460, 560]) + window_offset*tick2time
+
 print(v_drift)
 # loading data
 res = np.load('/home/matthias/workspace/larana/projects/out/time-histo/histo-more.npy')
@@ -47,7 +59,7 @@ prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color'][:3]
 
 # now some processing
-maximas = np.concatenate(res, axis=1) * tick2time
+maximas = (np.concatenate(res, axis=1) + window_offset) * tick2time
 
 n_wires = maximas.shape[0]
 n_timeticks = maximas.shape[1]
@@ -58,48 +70,48 @@ b = np.ones(maximas.shape)
 x = np.transpose(w * b.T)
 
 # and off we go for plotting
-fig = plt.figure()
-gs1 = gridspec.GridSpec(nrows=2, ncols=2)
-ax1 = fig.add_subplot(gs1[0, :])
-ax2 = fig.add_subplot(gs1[-1, :-1])
-ax3 = fig.add_subplot(gs1[-1, -1])
+fig = plt.figure(figsize=(4.670, 8))
+gs1 = gridspec.GridSpec(nrows=3, ncols=1)
+ax_2dhisto = fig.add_subplot(gs1[1, :])
+ax_rawwave = fig.add_subplot(gs1[0, :])
+ax_histogr = fig.add_subplot(gs1[2, :])
 
 # do the 2D histogram
-ax1.hist2d(x.flatten(), maximas.flatten(), bins=(np.arange(0,n_wires), np.arange(0,2000)/2))
-ax1.set_ylim(time_limit)
+ax_2dhisto.hist2d(x.flatten(), maximas.flatten(), bins=(n_wires, 1000))
+ax_2dhisto.set_ylim(time_limit)
 #ax1.colorbar(label='N')
-ax1.set_xlabel('Wire')
-ax1.set_ylabel('t[$\mu s$]')
+ax_2dhisto.set_xlabel('Wire')
+ax_2dhisto.set_ylabel('t[$\mu s$]')
 
 labels = list(range(len(loc)))
 print(labels)
 for x, y, s in zip(loc, len(loc)*[time_limit[0]], labels):
     print(x)
-    ax1.text(x+40,y,str(s+1), color='w')
+    ax_2dhisto.text(x + 40, y, str(s + 1), color='w')
 
-ax1.vlines(loc, time_limit[0], time_limit[1], linewidth=1, linestyles='dashed', colors=colors)
+ax_2dhisto.vlines(loc, time_limit[0], time_limit[1], linewidth=1, linestyles='dashed', colors=colors)
 
 # now we do the histograms and the fits
 lo = [1,2,2]
 xlimits = np.array([950, 1150])
-x = np.arange(0,len(wire_data[:,0])) * tick2time
+x = (np.arange(0,len(wire_data[:,0])) + window_offset) * tick2time
 wids = []
 
 for (i, l), c in zip(enumerate(loc), colors):
-    n, bins, patches = ax3.hist(maximas[l], bins=np.ceil(n_timeticks * tick2time), color=c, alpha=0.4)
+    n, bins, patches = ax_histogr.hist(maximas[l], bins=1000, color=c, alpha=0.4)
     raw_signal = -1* wire_data[:, i]
-    guess = (np.argmax(raw_signal[xlimits[0]:xlimits[1]]) + xlimits[0]) * tick2time
+    guess = (np.argmax(raw_signal[xlimits[0]:xlimits[1]]) + xlimits[0] + window_offset) * tick2time
 
     gmodel = Model(gaussian)
     result = gmodel.fit(n, x=bins[:-1], amp=400, cen=998/2, wid=10)
 
-    ax3.plot(bins[:-1], result.best_fit, color=c, linestyle='--')
+    ax_histogr.plot(bins[:-1], result.best_fit, color=c, linestyle='--')
 
     # plot raw
     print(guess)
     res_raw = gmodel.fit(raw_signal, x=x, amp=400, cen=guess, wid=5)
-    ax2.plot(x, raw_signal, color=c, alpha=0.4)
-    ax2.plot(x, res_raw.best_fit, color=c, linestyle='--')
+    ax_rawwave.plot(x, raw_signal, color=c, alpha=0.4)
+    ax_rawwave.plot(x, res_raw.best_fit, color=c, linestyle='--')
 
 
 
@@ -108,13 +120,23 @@ for (i, l), c in zip(enumerate(loc), colors):
     wid = result.params['wid']
 
 
-    textstr = 'amp: {:03.2f} +/- {:03.2f}\n' \
+    txt_time = 'amp: {:03.2f} +/- {:03.2f}\n' \
               'cen: {:03.2f} +/- {:03.2f}\n' \
               'wid: {:03.2f} +/- {:03.2f}'.format(amp.value, amp.stderr,
                                                   cen.value, cen.stderr,
                                                   wid.value, wid.stderr)
-    wids.append((cen.value, wid.value))
-    print(textstr)
+
+    d_cen = v_drift * cen.value
+    d_wid = np.around(v_drift * wid.value,1)
+    d_wid_m = np.around(d_wid - v_drift_minus * wid.value, 1)
+    d_wid_p = np.around(v_drift_plus * wid.value - d_wid, 1)
+
+    txt_dist = 'wid [mm]: {:03.1f}, - {:03.1f}, + {:03.1f}\n'.format(d_wid, d_wid_m, d_wid_p)
+
+    wids.append((cen.value, wid.value, d_wid, d_wid_m, d_wid_p))
+    print(txt_time)
+    print()
+    print(txt_dist)
     # these are matplotlib.patch.Patch properties
     #props = dict(boxstyle='round', facecolor=None, alpha=0.5)
     # place a text box in upper left in axes coords
@@ -126,18 +148,25 @@ for (i, l), c in zip(enumerate(loc), colors):
 
 
 
-ax2.grid()
-ax2.set_axisbelow(True)
-ax2.set_xlim(time_limit)
-ax2.set_xlabel('t[$\mu s$]')
-ax2.set_ylabel('A [$mV$]')
-ax2.set_ylim([-10,35])
+ax_rawwave.grid()
+ax_rawwave.set_axisbelow(True)
+ax_rawwave.set_xlim(time_limit)
+ax_rawwave.set_xlabel('t[$\mu s$]')
+ax_rawwave.set_ylabel('A [$mV$]')
+ax_rawwave.set_ylim([-10, 35])
 
-ax3.grid()
-ax3.set_axisbelow(True)
-ax3.set_xlim(time_limit)
-ax3.set_xlabel('t[$\mu s$]')
-ax3.set_ylabel('N')
+for label, ((x,y), c) in enumerate(zip([(940,30), (974,30), (992,30)], colors)):
+    ax_rawwave.text(x, y, str(label + 1), color=c)
+
+ax_histogr.grid()
+ax_histogr.set_axisbelow(True)
+ax_histogr.set_xlim(time_limit)
+ax_histogr.set_xlabel('t[$\mu s$]')
+ax_histogr.set_ylabel('N')
+
+
+for label, (y, c) in enumerate(zip([250,250,250], colors)):
+    ax_histogr.text(wids[label][0] - 5, y, str(label + 1), color=c)
 
 fig.tight_layout()
 if not args.prod:
@@ -146,4 +175,4 @@ else:
     plt.savefig('./gfx/EField/time_histo.pdf')
     with open('./gfx/EField/time_histo.txt', 'w') as f:
         for idx, w in enumerate(wids):
-            f.write("{},{:03.2f},{:03.2f}\n".format(idx, w[0], w[1]))
+            f.write("{},{:03.2f},{:03.2f},{:03.1f},{:03.1f}\n".format(idx, w[0], w[1], w[2], max([w[3], w[4]])))
