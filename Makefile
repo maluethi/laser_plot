@@ -15,6 +15,11 @@ time_histo : plot_time_histo_th.py
 time_evolution : plot_time_evolution.py
 	python plot_time_evolution.py -p
 
+# Chapter: LCS-System
+lcssystem: aoi
+
+aoi: plot_aoi.py
+	python plot_aoi.py -p
 
 install: 
 	cp -r ./gfx/ $(thesis)
